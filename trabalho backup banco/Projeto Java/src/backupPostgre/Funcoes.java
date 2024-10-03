@@ -6,6 +6,7 @@ import java.util.logging.*;
 import javax.crypto.*;
 import javax.crypto.spec.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Properties;
 import javax.mail.*;
 import javax.mail.internet.*;
@@ -13,7 +14,7 @@ import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.CompressionMethod;
 import net.lingala.zip4j.model.enums.EncryptionMethod;
-
+import java.sql.Connection;
 
 public class Funcoes {
     private static final String caminhoDestino = "C:/Temp/Backup/";
@@ -48,17 +49,52 @@ public class Funcoes {
     }
 
     public void processoIniciar() throws Exception {
-        criarLog("Iniciando processo de backup...");
-        String backupCommand = "pg_dump -U postgres -F c -b -v -f " + caminhoDestino + "backup.sql";
-        Process process = Runtime.getRuntime().exec(backupCommand);
-        process.waitFor();
+        Connection conn = DatabaseConnection.conectar();
 
-        if (process.exitValue() != 0) {
-            throw new Exception("Erro durante o backup.");
+        if (conn != null) {
+            criarLog("Iniciando processo de backup...");
+
+            String usuario = "seu_usuario"; // Defina seu usuário aqui
+            String senha = "sua_senha"; // Defina sua senha aqui
+
+            String[] comandoBackup = {
+                "pg_dump", 
+                "-h", "localhost", 
+                "-U", usuario, 
+                "-F", "c", 
+                "-b", 
+                "-v", 
+                "-f", caminhoDestino + "backup.sql"
+            };
+
+            Map<String, String> env = System.getenv();
+            ProcessBuilder processBuilder = new ProcessBuilder(comandoBackup);
+            processBuilder.environment().put("PGPASSWORD", senha);
+            processBuilder.directory(new File(caminhoDestino));
+            processBuilder.redirectErrorStream(true);
+
+            Process processo = processBuilder.start();
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(processo.getInputStream()))) {
+                String linha;
+                while ((linha = reader.readLine()) != null) {
+                    criarLog(linha);
+                }
+            }
+
+            int exitCode = processo.waitFor();
+            if (exitCode == 0) {
+                criarLog("Backup concluído com sucesso.");
+            } else {
+                throw new Exception("Erro ao executar o backup. Código de saída: " + exitCode);
+            }
+
+            conn.close();
+        } else {
+            criarLog("Falha na conexão ao banco de dados.");
         }
-
-        criarLog("Backup concluído com sucesso.");
     }
+
 
     public void backupCriptografar() throws Exception {
         criarLog("Criptografando backup...");
@@ -95,8 +131,8 @@ public class Funcoes {
         zipParameters.setEncryptionMethod(EncryptionMethod.ZIP_STANDARD);
 
         try (ZipFile zipFile = new ZipFile(arquivoZip, zipPassword.toCharArray())) {
-			zipFile.addFile(new File(arquivoCriptografado), zipParameters);
-		}
+            zipFile.addFile(new File(arquivoCriptografado), zipParameters);
+        }
         criarLog("Compactação concluída.");
     }
 
