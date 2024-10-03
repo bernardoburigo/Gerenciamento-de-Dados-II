@@ -17,7 +17,7 @@ import net.lingala.zip4j.model.enums.EncryptionMethod;
 import java.sql.Connection;
 
 public class Funcoes {
-    private static final String caminhoDestino = "C:/Temp/Backup/";
+    private static final String caminhoDestino = "C:/Temp/Backup/"; //deve existir antes de rodar o código
     private static final String zipPassword = "senha123";
     private static final Logger logger = Logger.getLogger("BackupLog");
 
@@ -54,8 +54,8 @@ public class Funcoes {
         if (conn != null) {
             criarLog("Iniciando processo de backup...");
 
-            String usuario = "seu_usuario"; // Defina seu usuário aqui
-            String senha = "sua_senha"; // Defina sua senha aqui
+            String usuario = "seu_usuario"; // defina seu usuário do postgre aqui
+            String senha = "sua_senha"; // defina sua senha do postgre aqui
 
             String[] comandoBackup = {
                 "pg_dump", 
